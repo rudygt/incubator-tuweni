@@ -47,6 +47,8 @@ class Bytes32Test {
     MutableBytes mutableBytes = MutableBytes.create(48);
     bytes.copyTo(mutableBytes);
     assertEquals("0x11", mutableBytes.slice(1, 1).toHexString());
+    assertEquals("0x11", mutableBytes.slice(1, 1).toFastHexString());
+    assertEquals("0x11", mutableBytes.slice(1, 1).toFastHexByteBufferString());
     assertEquals("0x1122", mutableBytes.slice(1, 2).toHexString());
     assertEquals("0x112233445566778899aa", mutableBytes.slice(1, 10).toHexString());
     assertEquals("0x112233445566778899aabbccddeeff", mutableBytes.slice(1, 15).toHexString());

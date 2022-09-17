@@ -438,6 +438,7 @@ abstract class CommonBytesTests {
     assertEquals("0x0", h("0x").toQuantityHexString());
     assertEquals("0x0", h("0x0000").toQuantityHexString());
     assertEquals("0x1000001", h("0x01000001").toQuantityHexString());
+    assertEquals("0x100000100", h("0x000100000100").toQuantityHexString());
   }
 
   @Test
@@ -445,6 +446,7 @@ abstract class CommonBytesTests {
     assertEquals("0x", h("0x").toShortHexString());
     assertEquals("0x", h("0x0000").toShortHexString());
     assertEquals("0x1000001", h("0x01000001").toShortHexString());
+    assertEquals("0x100000100", h("0x000100000100").toShortHexString());
 
     assertEquals("0000", h("0x0000").toUnprefixedHexString());
     assertEquals("1234", h("0x1234").toUnprefixedHexString());

@@ -10,6 +10,11 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
+plugins {
+  id 'java-library'
+  id "me.champeau.jmh" version "0.6.7"
+}
+
 description = 'Classes and utilities for working with byte arrays.'
 
 dependencies {
@@ -23,6 +28,16 @@ dependencies {
   testImplementation 'org.junit.jupiter:junit-jupiter-api'
   testImplementation 'org.junit.jupiter:junit-jupiter-params'
   testImplementation 'org.mockito:mockito-junit-jupiter'
+  testImplementation 'org.openjdk.jmh:jmh-core:1.35'
+  testImplementation 'org.openjdk.jmh:jmh-generator-bytecode:1.35'
+
+  jmhAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.35'
 
   testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}
+
+jmh {
+  warmupIterations = 2
+  iterations = 5
+  fork = 1
 }

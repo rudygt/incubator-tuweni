@@ -12,6 +12,8 @@
  */
 package org.apache.tuweni.bytes;
 
+import java.nio.ByteBuffer;
+
 import static org.apache.tuweni.bytes.Checks.checkArgument;
 
 final class BytesValues {
@@ -51,7 +53,8 @@ final class BytesValues {
       checkArgument(size <= destSize, "Hex value is too large: expected at most %s bytes but got %s", destSize, size);
     }
 
-    byte[] out = new byte[destSize];
+    //byte[] out = new byte[destSize];
+    ByteBuffer out = ByteBuffer.allocate(destSize);
 
     int destOffset = (destSize - size);
     for (int i = 0; i < len; i += 2) {
@@ -73,10 +76,10 @@ final class BytesValues {
                     hex.charAt(i + 1),
                     i + 1 - idxShift));
       }
-
-      out[destOffset + (i / 2)] = (byte) (h * 16 + l);
+      out.put(destOffset + (i / 2), (byte) (h * 16 + l));
+      //out[destOffset + (i / 2)] = (byte) (h * 16 + l);
     }
-    return out;
+    return out.array();
   }
 
   private static int hexToBin(char ch) {

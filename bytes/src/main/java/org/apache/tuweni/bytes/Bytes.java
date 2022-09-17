@@ -25,6 +25,7 @@ import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.ReadOnlyBufferException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -636,7 +637,7 @@ public interface Bytes extends Comparable<Bytes> {
   /**
    *
    * Provides the number of bytes this value represents.
-   * 
+   *
    * @return The number of bytes this value represents.
    */
   int size();
@@ -961,7 +962,7 @@ public interface Bytes extends Comparable<Bytes> {
   /**
    * Provides the number of zero bits preceding the highest-order ("leftmost") one-bit, or {@code size() * 8} if all
    * bits * are zero.
-   * 
+   *
    * @return The number of zero bits preceding the highest-order ("leftmost") one-bit, or {@code size() * 8} if all bits
    *         are zero.
    */
@@ -989,7 +990,7 @@ public interface Bytes extends Comparable<Bytes> {
 
   /**
    * Provides the number of leading zero bytes of the value
-   * 
+   *
    * @return The number of leading zero bytes of the value.
    */
   default int numberOfLeadingZeroBytes() {
@@ -1004,7 +1005,7 @@ public interface Bytes extends Comparable<Bytes> {
 
   /**
    * Provides the number of trailing zero bytes of the value.
-   * 
+   *
    * @return The number of trailing zero bytes of the value.
    */
   default int numberOfTrailingZeroBytes() {
@@ -1020,7 +1021,7 @@ public interface Bytes extends Comparable<Bytes> {
   /**
    * Provides the number of bits following and including the highest-order ("leftmost") one-bit, or zero if all bits are
    * zero.
-   * 
+   *
    * @return The number of bits following and including the highest-order ("leftmost") one-bit, or zero if all bits are
    *         zero.
    */
@@ -1434,11 +1435,20 @@ public interface Bytes extends Comparable<Bytes> {
    */
   default <T extends Appendable> T appendHexTo(T appendable) {
     try {
+      appendable.append(toFastHexByteBuffer(false));
+      return appendable;
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  default <T extends Appendable> T appendFastHexTo(T appendable) {
+    try {
       int size = size();
       for (int i = 0; i < size; i++) {
         byte b = get(i);
-        appendable.append(AbstractBytes.HEX_CODE[b >> 4 & 15]);
-        appendable.append(AbstractBytes.HEX_CODE[b & 15]);
+        appendable.append(AbstractBytes.HEX_CODE_AS_STRING.charAt(b >> 4 & 15));
+        appendable.append(AbstractBytes.HEX_CODE_AS_STRING.charAt(b & 15));
       }
       return appendable;
     } catch (IOException e) {
@@ -1446,6 +1456,52 @@ public interface Bytes extends Comparable<Bytes> {
     }
   }
 
+  default char[] toFastHex(boolean prefix){
+
+      int offset = prefix ? 2 : 0;
+
+      int resultSize = (size() * 2) + offset;
+
+      char[] result = new char[resultSize];
+
+      if (prefix) {
+          result[0] = '0';
+          result[1] = 'x';
+      }
+
+      for (int i = 0; i < size(); i++) {
+          byte b = get(i);
+          int pos = i * 2;
+          result[pos + offset] = AbstractBytes.HEX_CODE_AS_STRING.charAt(b >> 4 & 15);
+          result[pos + offset + 1] = AbstractBytes.HEX_CODE_AS_STRING.charAt(b & 15);
+      }
+
+      return result;
+
+  }
+
+  default String toFastHexByteBuffer(boolean prefix){
+
+    int offset = prefix ? 2 : 0;
+
+    int resultSize = (size() * 2) + offset;
+
+    ByteBuffer result = ByteBuffer.allocate(resultSize);
+
+    if (prefix) {
+      result.put((byte) '0');
+      result.put((byte) 'x');
+    }
+
+    for (int i = 0; i < size(); i++) {
+      byte b = get(i);
+      result.put((byte) AbstractBytes.HEX_CODE_AS_STRING.charAt(b >> 4 & 15));
+      result.put((byte) AbstractBytes.HEX_CODE_AS_STRING.charAt(b & 15));
+    }
+
+    return new String(result.array(), StandardCharsets.US_ASCII);
+
+  }
   /**
    * Return the number of bytes in common between this set of bytes and another.
    *
@@ -1581,16 +1637,26 @@ public interface Bytes extends Comparable<Bytes> {
 
   /**
    * Provides this value represented as hexadecimal, starting with "0x".
-   * 
+   *
    * @return This value represented as hexadecimal, starting with "0x".
    */
   default String toHexString() {
-    return appendHexTo(new StringBuilder("0x")).toString();
+    return toFastHexByteBuffer(true);
+  }
+
+  default String toFastHexString() {
+    return new String(toFastHex(true));
+    //return appendFastHexTo(new StringBuilder("0x")).toString();
+  }
+
+  default String toFastHexByteBufferString() {
+    return toFastHexByteBuffer(true);
+    //return appendFastHexTo(new StringBuilder("0x")).toString();
   }
 
   /**
    * Provides this value represented as hexadecimal, with no prefix
-   * 
+   *
    * @return This value represented as hexadecimal, with no prefix.
    */
   default String toUnprefixedHexString() {
@@ -1602,28 +1668,31 @@ public interface Bytes extends Comparable<Bytes> {
     if (size < 6) {
       return toHexString();
     }
-    StringBuilder appendable = new StringBuilder("0x");
+    ByteBuffer result = ByteBuffer.allocate(12);
+    result.put((byte)'0');
+    result.put((byte)'x');
     for (int i = 0; i < 2; i++) {
       byte b = get(i);
-      appendable.append(AbstractBytes.HEX_CODE[b >> 4 & 15]);
-      appendable.append(AbstractBytes.HEX_CODE[b & 15]);
+      result.put((byte) AbstractBytes.HEX_CODE_AS_STRING.charAt(b >> 4 & 15));
+      result.put((byte) AbstractBytes.HEX_CODE_AS_STRING.charAt(b & 15));
     }
-    appendable.append("..");
+    result.put((byte)'.');
+    result.put((byte)'.');
     for (int i = 0; i < 2; i++) {
       byte b = get(i + size - 2);
-      appendable.append(AbstractBytes.HEX_CODE[b >> 4 & 15]);
-      appendable.append(AbstractBytes.HEX_CODE[b & 15]);
+      result.put((byte) AbstractBytes.HEX_CODE_AS_STRING.charAt(b >> 4 & 15));
+      result.put((byte) AbstractBytes.HEX_CODE_AS_STRING.charAt(b & 15));
     }
-    return appendable.toString();
+    return new String(result.array(), StandardCharsets.US_ASCII);
   }
 
   /**
    * Provides this value represented as a minimal hexadecimal string (without any leading zero)
-   * 
+   *
    * @return This value represented as a minimal hexadecimal string (without any leading zero).
    */
   default String toShortHexString() {
-    StringBuilder hex = appendHexTo(new StringBuilder());
+    String hex = toFastHexByteBuffer(false);
 
     int i = 0;
     while (i < hex.length() && hex.charAt(i) == '0') {
@@ -1635,7 +1704,7 @@ public interface Bytes extends Comparable<Bytes> {
   /**
    * Provides this value represented as a minimal hexadecimal string (without any leading zero, except if it's valued
    * zero or empty, in which case it returns 0x0).
-   * 
+   *
    * @return This value represented as a minimal hexadecimal string (without any leading zero, except if it's valued
    *         zero or empty, in which case it returns 0x0).
    */
@@ -1643,18 +1712,18 @@ public interface Bytes extends Comparable<Bytes> {
     if (Bytes.EMPTY.equals(this)) {
       return "0x0";
     }
-    StringBuilder hex = appendHexTo(new StringBuilder());
+    String hex = toFastHexByteBuffer(false);
 
     int i = 0;
     while (i < hex.length() - 1 && hex.charAt(i) == '0') {
       i++;
     }
-    return "0x" + hex.substring(hex.charAt(hex.length() - 1) == '0' ? i : i++);
+    return "0x" + hex.substring(i);
   }
 
   /**
    * Provides this value represented as base 64
-   * 
+   *
    * @return This value represented as base 64.
    */
   default String toBase64String() {
