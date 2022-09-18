@@ -318,6 +318,10 @@ class BytesTest extends CommonBytesTests {
   }
 
   @Test
+  void simple() {
+    assertArrayEquals(BytesValues.fromRawHexString("0x01FF2A", -1, false), BytesValues.fromFastRawHexString("0x01FF2A", -1, false));
+  }
+  @Test
   void fromHexStringLenientLeftPadding() {
     assertEquals(Bytes.of(), Bytes.fromHexStringLenient("", 0));
     assertEquals(Bytes.of(0), Bytes.fromHexStringLenient("", 1));

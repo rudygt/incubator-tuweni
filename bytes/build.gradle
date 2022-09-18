@@ -37,6 +37,7 @@ dependencies {
 }
 
 jmh {
+  // includes = ["ShortHexBenchmark"]
   warmupIterations = 2
   iterations = 5
   fork = 1

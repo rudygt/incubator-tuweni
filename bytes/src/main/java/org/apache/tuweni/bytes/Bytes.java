@@ -1435,7 +1435,12 @@ public interface Bytes extends Comparable<Bytes> {
    */
   default <T extends Appendable> T appendHexTo(T appendable) {
     try {
-      appendable.append(toFastHexByteBuffer(false));
+      int size = size();
+      for (int i = 0; i < size; i++) {
+        byte b = get(i);
+        appendable.append(AbstractBytes.HEX_CODE[b >> 4 & 15]);
+        appendable.append(AbstractBytes.HEX_CODE[b & 15]);
+      }
       return appendable;
     } catch (IOException e) {
       throw new UncheckedIOException(e);
@@ -1456,7 +1461,7 @@ public interface Bytes extends Comparable<Bytes> {
     }
   }
 
-  default char[] toFastHex(boolean prefix){
+  default String toFastHex(boolean prefix){
 
       int offset = prefix ? 2 : 0;
 
@@ -1476,7 +1481,7 @@ public interface Bytes extends Comparable<Bytes> {
           result[pos + offset + 1] = AbstractBytes.HEX_CODE_AS_STRING.charAt(b & 15);
       }
 
-      return result;
+      return new String(result);
 
   }
 
@@ -1641,17 +1646,15 @@ public interface Bytes extends Comparable<Bytes> {
    * @return This value represented as hexadecimal, starting with "0x".
    */
   default String toHexString() {
-    return toFastHexByteBuffer(true);
+    return appendHexTo(new StringBuilder("0x")).toString();
   }
 
   default String toFastHexString() {
-    return new String(toFastHex(true));
-    //return appendFastHexTo(new StringBuilder("0x")).toString();
+    return toFastHex(true);
   }
 
   default String toFastHexByteBufferString() {
     return toFastHexByteBuffer(true);
-    //return appendFastHexTo(new StringBuilder("0x")).toString();
   }
 
   /**
@@ -1668,22 +1671,44 @@ public interface Bytes extends Comparable<Bytes> {
     if (size < 6) {
       return toHexString();
     }
-    ByteBuffer result = ByteBuffer.allocate(12);
-    result.put((byte)'0');
-    result.put((byte)'x');
+    StringBuilder appendable = new StringBuilder("0x");
     for (int i = 0; i < 2; i++) {
       byte b = get(i);
-      result.put((byte) AbstractBytes.HEX_CODE_AS_STRING.charAt(b >> 4 & 15));
-      result.put((byte) AbstractBytes.HEX_CODE_AS_STRING.charAt(b & 15));
+      appendable.append(AbstractBytes.HEX_CODE[b >> 4 & 15]);
+      appendable.append(AbstractBytes.HEX_CODE[b & 15]);
     }
-    result.put((byte)'.');
-    result.put((byte)'.');
+    appendable.append("..");
     for (int i = 0; i < 2; i++) {
       byte b = get(i + size - 2);
-      result.put((byte) AbstractBytes.HEX_CODE_AS_STRING.charAt(b >> 4 & 15));
-      result.put((byte) AbstractBytes.HEX_CODE_AS_STRING.charAt(b & 15));
+      appendable.append(AbstractBytes.HEX_CODE[b >> 4 & 15]);
+      appendable.append(AbstractBytes.HEX_CODE[b & 15]);
     }
-    return new String(result.array(), StandardCharsets.US_ASCII);
+    return appendable.toString();
+  }
+
+  default String toFastEllipsisHexString() {
+    int size = size();
+    if (size < 6) {
+      return toHexString();
+    }
+    char[] result = new char[12];
+    result[0] = '0';
+    result[1] = 'x';
+    for (int i = 0; i < 2; i++) {
+      byte b = get(i);
+      int pos = (i * 2) + 2;
+      result[pos] = AbstractBytes.HEX_CODE_AS_STRING.charAt(b >> 4 & 15);
+      result[pos + 1] = AbstractBytes.HEX_CODE_AS_STRING.charAt(b & 15);
+    }
+    result[6] = '.';
+    result[7] = '.';
+    for (int i = 0; i < 2; i++) {
+      byte b = get(i + size - 2);
+      int pos = (i * 2) + 8;
+      result[pos] = AbstractBytes.HEX_CODE_AS_STRING.charAt(b >> 4 & 15);
+      result[pos + 1] = AbstractBytes.HEX_CODE_AS_STRING.charAt(b & 15);
+    }
+    return new String(result);
   }
 
   /**
